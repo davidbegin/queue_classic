@@ -103,13 +103,20 @@ module QC
     end
   end
 
+  # In Posgres 9.2 and up, it is 'pid', below it is 'procpid'
+  #
   # This will unlock all jobs any postgres' PID that is not existing anymore
   # to prevent any infinitely locked jobs
   def self.unlock_jobs_of_dead_workers
-    @conn_adapter.execute("UPDATE #{QC::TABLE_NAME} SET locked_at = NULL, locked_by = NULL WHERE locked_by NOT IN (SELECT pid FROM pg_stat_activity);")
+    if @conn_adapter.connection.server_version < 90200
+      @conn_adapter.execute("UPDATE #{QC::TABLE_NAME} SET locked_at = NULL, locked_by = NULL WHERE locked_by NOT IN (SELECT procpid FROM pg_stat_activity);")
+    else
+      @conn_adapter.execute("UPDATE #{QC::TABLE_NAME} SET locked_at = NULL, locked_by = NULL WHERE locked_by NOT IN (SELECT pid FROM pg_stat_activity);")
+    end
   end
 
-  private
+private
+
   def self.rails_connection_sharing_enabled?
     enabled = ENV.fetch('QC_RAILS_DATABASE', 'true') != 'false'
     return false unless enabled
