@@ -111,7 +111,7 @@ module QC
           queue.delete(job[:id])
           finished = true
         end
-      rescue => e
+      rescue Exception => e
         handle_failure(job, e)
         finished = true
       ensure
